@@ -1,0 +1,131 @@
+PROCEDURE CHIME_MODEL()
+LANGUAGE SQLSCRIPT
+   SQL SECURITY INVOKER
+   --DEFAULT SCHEMA <default_schema_name>
+   AS
+BEGIN
+	-- Parameters Setup
+	DECLARE population 				DOUBLE  := 4119404.9966666666 +3733.333333334;
+	DECLARE doubling_time 			DOUBLE  := 4;
+	DECLARE recovery_days			DOUBLE  := 14;
+	DECLARE	n_days					INTEGER := 60; -- days to run forward simulation
+	DECLARE start_date				DATE	:= TO_DATE(NOW());
+	
+	DECLARE current_hospitalized	INTEGER := 14;
+	DECLARE market_share			DOUBLE  := 15/100; --15%
+	DECLARE relative_contact_rate	DOUBLE  := 30/100; --#30% social distancing
+
+	DECLARE hospitalized_rate		DOUBLE  := 2.5/100;  --2.5%
+	DECLARE icu_rate				DOUBLE  := 0.75/100; --0.75%
+	DECLARE ventilated_rate			DOUBLE  := 0.5/100;  --0.5%
+
+	DECLARE hospitalized_length_of_stay	INTEGER := 7;
+	DECLARE icu_length_of_stay			INTEGER := 9;
+	DECLARE ventilated_length_of_stay	INTEGER := 10;
+
+	-- Assisting Variables for SIR Model Computations
+	DECLARE infected				DOUBLE  := 0;
+	DECLARE susceptible				DOUBLE  := 0;
+	DECLARE recovered				DOUBLE  := 0;
+	DECLARE intrinsic_growth_rate	DOUBLE  := 0;
+	DECLARE gamma					DOUBLE  := 0;
+	DECLARE beta					DOUBLE  := 0;
+	
+	-- The SIR Model results table
+	DECLARE sir_tbl TABLE (
+   	    "ID" 				INTEGER,
+		"DATE"   			DATE,
+		"SIR_SUSCEPTIBLE"	DOUBLE,
+		"SIR_INFECTED" 		DOUBLE,
+		"SIR_RECOVERED"		DOUBLE
+	)
+	;
+	
+
+	-- Basic SIR Model Computations
+	infected 		:= ( :current_hospitalized / :market_share / :hospitalized_rate);
+	susceptible 	:= :population - :infected;
+	IF :doubling_time > 0 THEN
+		intrinsic_growth_rate := POWER(2.0, (1.0 / :doubling_time)) - 1.0;
+	ELSE
+		intrinsic_growth_rate := 0.0;
+	END IF;
+	gamma := 1.0 / :recovery_days;
+	beta := ((:intrinsic_growth_rate + :gamma)/ :susceptible * (1.0 - :relative_contact_rate));
+
+	-- Run forward Simulations using SIR model
+	BEGIN
+		DECLARE s 		DOUBLE := ROUND(:susceptible, 0);
+		DECLARE i 		DOUBLE := :infected;
+		DECLARE r 		DOUBLE := :recovered;
+		DECLARE n 		DOUBLE := (:s + :i + :r);
+		DECLARE iter 	INTEGER := 0;
+		DECLARE s_n, i_n, r_n, scale	DOUBLE :=0;
+		
+		:sir_tbl.INSERT((0, :start_date, :s, :i, :r ) );
+		FOR iter IN 1 .. (:n_days) DO
+			
+			s_n := (-:beta * :s * :i) + :s;
+		    i_n := (:beta * :s * :i - :gamma * :i) + :i;
+		    r_n := :gamma * :i + :r;
+		   
+		    IF :s_n < 0.0 THEN s_n := 0.0; END IF; 
+		    IF :i_n < 0.0 THEN i_n := 0.0; END IF;  
+		    IF :r_n < 0.0 THEN r_n := 0.0; END IF;  
+		    
+		    scale := :n / (:s_n + :i_n + :r_n);
+		    
+		    s := :s_n;
+		    i := :i_n;
+		    r := :r_n;
+		    
+		    :sir_tbl.INSERT((:iter, ADD_DAYS(:start_date, :iter), (:s_n * :scale), (:i_n * :scale), (:r_n * :scale) ) );
+		END FOR;
+		--SELECT * FROM :sir_tbl;
+	END;
+	
+	-- Compute Dispositions
+	dispositions_tbl = 	SELECT 	"ID", "DATE", 
+								("SIR_INFECTED" + "SIR_RECOVERED") * :hospitalized_rate * :market_share AS "DISP_HOSPITILIZED",
+								("SIR_INFECTED" + "SIR_RECOVERED") * :icu_rate          * :market_share AS "DISP_ICU",
+								("SIR_INFECTED" + "SIR_RECOVERED") * :ventilated_rate   * :market_share AS "DISP_VENTILATED"
+						FROM :sir_tbl
+						;
+	--SELECT * FROM :dispositions_tbl;
+	
+	-- Compute Admissions
+	admissions_tbl = 	SELECT 	"ID", "DATE", 
+								"DISP_HOSPITILIZED" - LAG("DISP_HOSPITILIZED", 1) OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "ADM_HOSPITILIZED",
+								"DISP_ICU" 		    - LAG("DISP_ICU", 1) 		  OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "ADM_ICU",
+								"DISP_VENTILATED"   - LAG("DISP_VENTILATED", 1)   OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "ADM_VENTILATED"
+						FROM :dispositions_tbl
+						;
+	--SELECT * FROM :admissions_tbl;
+	
+	-- Compute Cencus
+	census_tbl_tmp 	=	SELECT 	"ID", "DATE", 
+								SUM("ADM_HOSPITILIZED") OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "CENS_HOSPITILIZED_SUM",
+								SUM("ADM_ICU") 			OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "CENS_ICU_SUM",
+								SUM("ADM_VENTILATED") 	OVER (ORDER BY "ID" ASC, "DATE" ASC) AS "CENS_VENTILATED_SUM"
+						FROM :admissions_tbl
+						;
+	--SELECT * FROM :census_tbl_tmp;
+	
+	census_tbl 	= 		SELECT 	"ID", "DATE", 
+								CEIL("CENS_HOSPITILIZED_SUM"- IFNULL(LAG("CENS_HOSPITILIZED_SUM", 	:hospitalized_length_of_stay) 	OVER (ORDER BY "ID" ASC, "DATE" ASC), 0)) AS "CENS_HOSPITILIZED",
+								CEIL("CENS_ICU_SUM" 		- IFNULL(LAG("CENS_ICU_SUM", 			:icu_length_of_stay) 			OVER (ORDER BY "ID" ASC, "DATE" ASC), 0)) AS "CENS_ICU",
+								CEIL("CENS_VENTILATED_SUM" 	- IFNULL(LAG("CENS_VENTILATED_SUM", 	:ventilated_length_of_stay) 	OVER (ORDER BY "ID" ASC, "DATE" ASC), 0)) AS "CENS_VENTILATED"
+						FROM :census_tbl_tmp
+						;
+	--SELECT * FROM :census_tbl;	
+	
+	SELECT 	a.*, 
+			b."DISP_HOSPITILIZED", b."DISP_ICU", b."DISP_VENTILATED",
+			c."ADM_HOSPITILIZED",  c."ADM_ICU",  c."ADM_VENTILATED",
+			d."CENS_HOSPITILIZED", d."CENS_ICU", d."CENS_VENTILATED"
+	FROM :sir_tbl AS a
+	LEFT JOIN :dispositions_tbl AS b ON a."ID" = b."ID"
+	LEFT JOIN :admissions_tbl 	AS c ON a."ID" = c."ID"
+	LEFT JOIN :census_tbl 		AS d ON a."ID" = d."ID"
+	;
+END;

@@ -1,0 +1,29 @@
+FUNCTION "sir"( IN s float, IN i float, IN r float, IN beta float, IN gamma float, IN n float)
+       RETURNS TABLE (s_n float, i_n float, r_n float)
+       LANGUAGE SQLSCRIPT 
+       SQL SECURITY INVOKER AS 
+BEGIN 
+    /*****************************
+    """The SIR model, one time step."""
+    Takes in SIR for current time step and provides the values for next time step
+    ****************************/
+    
+    declare s_n float = (-:beta * :s * :i) + :s;
+    declare i_n float = (:beta * :s * :i - :gamma * :i) + :i;
+    declare r_n float = :gamma * :i + :r;
+    declare scale float;
+    if :s_n < 0.0 then
+        s_n := 0.0;
+    end if;
+    if :i_n < 0.0 then
+        i_n := 0.0;
+    end if;
+    if :r_n < 0.0 then
+        r_n := 0.0;
+	end if;
+	
+    scale := :n / (:s_n + :i_n + :r_n);
+    
+    return select :s_n * :scale as s_n, :i_n * :scale as i_n, :r_n * :scale as r_n from HDI_TBL_DEFAULT_PARAMETERS;
+
+end

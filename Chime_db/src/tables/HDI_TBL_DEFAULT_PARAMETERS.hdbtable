@@ -1,0 +1,15 @@
+COLUMN TABLE "HDI_TBL_DEFAULT_PARAMETERS" (
+	"population" INTEGER CS_INT,
+	"current_hospitalized" INTEGER CS_INT,
+    "doubling_time" INTEGER CS_INT,
+    "known_infected" INTEGER CS_INT,
+    "n_days" INTEGER CS_INT,
+    "market_share" FLOAT,
+    "relative_contact_rate" FLOAT,
+    "hospitalized_rate" FLOAT,
+    "hospitalized_los" INTEGER CS_INT,
+    "icu_rate" FLOAT,
+    "icu_los" INTEGER CS_INT,
+    "ventilated_rate" FLOAT,
+    "ventilated_los" INTEGER CS_INT
+) 

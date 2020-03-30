@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Calculation:scenario xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Calculation="http://www.sap.com/ndb/BiModelCalculation.ecore" schemaVersion="2.3" id="CV_SIR_MODEL_W_ADM_CENS" applyPrivilegeType="ANALYTIC_PRIVILEGE" checkAnalyticPrivileges="true" defaultClient="$$client$$" defaultLanguage="$$language$$" hierarchiesSQLEnabled="false" translationRelevant="true" visibility="reportingEnabled" calculationScenarioType="SCRIPT_BASED" dataCategory="CUBE" enforceSqlExecution="false" executionSemantic="UNDEFINED" scriptParametersCaseSensitive="true">
+  <descriptions defaultDescription="CV_SIR_MODEL"/>
+  <localVariables>
+    <variable id="start_date" parameter="true">
+      <descriptions defaultDescription="start_date"/>
+      <variableProperties datatype="DATE" defaultExpressionLanguage="SQL" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+        <defaultExpression>TO_DATE(NOW())</defaultExpression>
+      </variableProperties>
+    </variable>
+    <variable id="n_days" parameter="true">
+      <descriptions defaultDescription="n_days"/>
+      <variableProperties datatype="INTEGER" defaultValue="60" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="current_hospitalized" parameter="true">
+      <descriptions defaultDescription="current_hospitalized"/>
+      <variableProperties datatype="INTEGER" defaultValue="14" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="doubling_time" parameter="true">
+      <descriptions defaultDescription="doubling_time"/>
+      <variableProperties datatype="DOUBLE" defaultValue="4" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="relative_contact_rate" parameter="true">
+      <descriptions defaultDescription="relative_contact_rate"/>
+      <variableProperties datatype="DOUBLE" defaultValue="30/100" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="hospitalized_rate" parameter="true">
+      <descriptions defaultDescription="hospitalized_rate"/>
+      <variableProperties datatype="DOUBLE" defaultValue="2.5/100" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="icu_rate" parameter="true">
+      <descriptions defaultDescription="icu_rate"/>
+      <variableProperties datatype="DOUBLE" defaultValue="0.75/100" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="ventilated_rate" parameter="true">
+      <descriptions defaultDescription="ventilated_rate"/>
+      <variableProperties datatype="DOUBLE" defaultValue="0.5/100" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="hospitalized_length_of_stay" parameter="true">
+      <descriptions defaultDescription="hospitalized_length_of_stay"/>
+      <variableProperties datatype="INTEGER" defaultValue="7" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="icu_length_of_stay" parameter="true">
+      <descriptions defaultDescription="icu_length_of_stay"/>
+      <variableProperties datatype="INTEGER" defaultValue="9" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="ventilated_length_of_stay" parameter="true">
+      <descriptions defaultDescription="ventilated_length_of_stay"/>
+      <variableProperties datatype="INTEGER" defaultValue="10" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="market_share" parameter="true">
+      <descriptions defaultDescription="market_share"/>
+      <variableProperties datatype="DOUBLE" defaultValue="15/100" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="population" parameter="true">
+      <descriptions defaultDescription="population"/>
+      <variableProperties datatype="DOUBLE" defaultValue="4123138.3300000006" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+    <variable id="recovery_days" parameter="true">
+      <descriptions defaultDescription="recovery_days"/>
+      <variableProperties datatype="DOUBLE" defaultValue="14" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+  </localVariables>
+  <variableMappings/>
+  <informationModelLayout relativeWidthScenario="27"/>
+  <dataSources/>
+  <calculationViews>
+    <calculationView xsi:type="Calculation:SqlScriptView" id="Script_View">
+      <descriptions/>
+      <viewAttributes>
+        <viewAttribute datatype="INTEGER" id="ID"/>
+        <viewAttribute datatype="DATE" id="DATE"/>
+        <viewAttribute datatype="DOUBLE" id="SIR_SUSCEPTIBLE"/>
+        <viewAttribute datatype="DOUBLE" id="SIR_INFECTED"/>
+        <viewAttribute datatype="DOUBLE" id="SIR_RECOVERED"/>
+        <viewAttribute datatype="DOUBLE" id="DISP_HOSPITILIZED"/>
+        <viewAttribute datatype="DOUBLE" id="DISP_ICU"/>
+        <viewAttribute datatype="DOUBLE" id="DISP_VENTILATED"/>
+        <viewAttribute datatype="DOUBLE" id="ADM_HOSPITILIZED"/>
+        <viewAttribute datatype="DOUBLE" id="ADM_ICU"/>
+        <viewAttribute datatype="DOUBLE" id="ADM_VENTILATED"/>
+        <viewAttribute datatype="INTEGER" id="CENS_HOSPITILIZED"/>
+        <viewAttribute datatype="INTEGER" id="CENS_ICU"/>
+        <viewAttribute datatype="INTEGER" id="CENS_VENTILATED"/>
+      </viewAttributes>
+      <calculatedViewAttributes/>
+      <localVariable>#start_date</localVariable>
+      <localVariable>#n_days</localVariable>
+      <localVariable>#current_hospitalized</localVariable>
+      <localVariable>#doubling_time</localVariable>
+      <localVariable>#relative_contact_rate</localVariable>
+      <localVariable>#hospitalized_rate</localVariable>
+      <localVariable>#icu_rate</localVariable>
+      <localVariable>#ventilated_rate</localVariable>
+      <localVariable>#hospitalized_length_of_stay</localVariable>
+      <localVariable>#icu_length_of_stay</localVariable>
+      <localVariable>#ventilated_length_of_stay</localVariable>
+      <localVariable>#market_share</localVariable>
+      <localVariable>#population</localVariable>
+      <localVariable>#recovery_days</localVariable>
+      <definition> 
+ /********* Begin Procedure Script ************/ 
+BEGIN 
+	-- Assisting Variables for SIR Model Computations
+	DECLARE infected				DOUBLE  := 0;
+	DECLARE susceptible				DOUBLE  := 0;
+	DECLARE recovered				DOUBLE  := 0;
+	DECLARE intrinsic_growth_rate	DOUBLE  := 0;
+	DECLARE gamma					DOUBLE  := 0;
+	DECLARE beta					DOUBLE  := 0;
+	
+	-- The SIR Model results table
+	DECLARE sir_tbl TABLE (
+   	    &quot;ID&quot; 				INTEGER,
+		&quot;DATE&quot;   			DATE,
+		&quot;SIR_SUSCEPTIBLE&quot;	DOUBLE,
+		&quot;SIR_INFECTED&quot; 		DOUBLE,
+		&quot;SIR_RECOVERED&quot;		DOUBLE
+	)
+	;
+	
+
+	-- Basic SIR Model Computations
+	infected 		:= ( :current_hospitalized / :market_share / :hospitalized_rate);
+	susceptible 	:= :population - :infected;
+	IF :doubling_time > 0 THEN
+		intrinsic_growth_rate := POWER(2.0, (1.0 / :doubling_time)) - 1.0;
+	ELSE
+		intrinsic_growth_rate := 0.0;
+	END IF;
+	gamma := 1.0 / :recovery_days;
+	beta := ((:intrinsic_growth_rate + :gamma)/ :susceptible * (1.0 - :relative_contact_rate));
+
+	-- Run forward Simulations using SIR model
+	BEGIN
+		DECLARE s 		DOUBLE := ROUND(:susceptible, 0);
+		DECLARE i 		DOUBLE := :infected;
+		DECLARE r 		DOUBLE := :recovered;
+		DECLARE n 		DOUBLE := (:s + :i + :r);
+		DECLARE iter 	INTEGER := 0;
+		DECLARE s_n, i_n, r_n, scale	DOUBLE :=0;
+		
+		:sir_tbl.INSERT((0, :start_date, :s, :i, :r ) );
+		FOR iter IN 1 .. (:n_days) DO
+			
+			s_n := (-:beta * :s * :i) + :s;
+		    i_n := (:beta * :s * :i - :gamma * :i) + :i;
+		    r_n := :gamma * :i + :r;
+		   
+		    IF :s_n &lt; 0.0 THEN s_n := 0.0; END IF; 
+		    IF :i_n &lt; 0.0 THEN i_n := 0.0; END IF;  
+		    IF :r_n &lt; 0.0 THEN r_n := 0.0; END IF;  
+		    
+		    scale := :n / (:s_n + :i_n + :r_n);
+		    
+		    s := :s_n;
+		    i := :i_n;
+		    r := :r_n;
+		    
+		    :sir_tbl.INSERT((:iter, ADD_DAYS(:start_date, :iter), (:s_n * :scale), (:i_n * :scale), (:r_n * :scale) ) );
+		END FOR;
+		--SELECT * FROM :sir_tbl;
+	END;
+	
+	-- Compute Dispositions
+	dispositions_tbl = 	SELECT 	&quot;ID&quot;, &quot;DATE&quot;, 
+								(&quot;SIR_INFECTED&quot; + &quot;SIR_RECOVERED&quot;) * :hospitalized_rate * :market_share AS &quot;DISP_HOSPITILIZED&quot;,
+								(&quot;SIR_INFECTED&quot; + &quot;SIR_RECOVERED&quot;) * :icu_rate          * :market_share AS &quot;DISP_ICU&quot;,
+								(&quot;SIR_INFECTED&quot; + &quot;SIR_RECOVERED&quot;) * :ventilated_rate   * :market_share AS &quot;DISP_VENTILATED&quot;
+						FROM :sir_tbl
+						;
+	--SELECT * FROM :dispositions_tbl;
+	
+	-- Compute Admissions
+	admissions_tbl = 	SELECT 	&quot;ID&quot;, &quot;DATE&quot;, 
+								&quot;DISP_HOSPITILIZED&quot; - LAG(&quot;DISP_HOSPITILIZED&quot;, 1) OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;ADM_HOSPITILIZED&quot;,
+								&quot;DISP_ICU&quot; 		    - LAG(&quot;DISP_ICU&quot;, 1) 		  OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;ADM_ICU&quot;,
+								&quot;DISP_VENTILATED&quot;   - LAG(&quot;DISP_VENTILATED&quot;, 1)   OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;ADM_VENTILATED&quot;
+						FROM :dispositions_tbl
+						;
+	--SELECT * FROM :admissions_tbl;
+	
+	-- Compute Cencus
+	census_tbl_tmp 	=	SELECT 	&quot;ID&quot;, &quot;DATE&quot;, 
+								SUM(&quot;ADM_HOSPITILIZED&quot;) OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;CENS_HOSPITILIZED_SUM&quot;,
+								SUM(&quot;ADM_ICU&quot;) 			OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;CENS_ICU_SUM&quot;,
+								SUM(&quot;ADM_VENTILATED&quot;) 	OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC) AS &quot;CENS_VENTILATED_SUM&quot;
+						FROM :admissions_tbl
+						;
+	--SELECT * FROM :census_tbl_tmp;
+	
+	census_tbl 	= 		SELECT 	&quot;ID&quot;, &quot;DATE&quot;, 
+								CEIL(&quot;CENS_HOSPITILIZED_SUM&quot;- IFNULL(LAG(&quot;CENS_HOSPITILIZED_SUM&quot;, 	:hospitalized_length_of_stay) 	OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC), 0)) AS &quot;CENS_HOSPITILIZED&quot;,
+								CEIL(&quot;CENS_ICU_SUM&quot; 		- IFNULL(LAG(&quot;CENS_ICU_SUM&quot;, 			:icu_length_of_stay) 			OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC), 0)) AS &quot;CENS_ICU&quot;,
+								CEIL(&quot;CENS_VENTILATED_SUM&quot; 	- IFNULL(LAG(&quot;CENS_VENTILATED_SUM&quot;, 	:ventilated_length_of_stay) 	OVER (ORDER BY &quot;ID&quot; ASC, &quot;DATE&quot; ASC), 0)) AS &quot;CENS_VENTILATED&quot;
+						FROM :census_tbl_tmp
+						;
+	--SELECT * FROM :census_tbl;	
+	
+	var_out = 	SELECT 	a.*, 
+						b.&quot;DISP_HOSPITILIZED&quot;, b.&quot;DISP_ICU&quot;, b.&quot;DISP_VENTILATED&quot;,
+						c.&quot;ADM_HOSPITILIZED&quot;,  c.&quot;ADM_ICU&quot;,  c.&quot;ADM_VENTILATED&quot;,
+						d.&quot;CENS_HOSPITILIZED&quot;, d.&quot;CENS_ICU&quot;, d.&quot;CENS_VENTILATED&quot;
+				FROM :sir_tbl AS a
+				LEFT JOIN :dispositions_tbl AS b ON a.&quot;ID&quot; = b.&quot;ID&quot;
+				LEFT JOIN :admissions_tbl 	AS c ON a.&quot;ID&quot; = c.&quot;ID&quot;
+				LEFT JOIN :census_tbl 		AS d ON a.&quot;ID&quot; = d.&quot;ID&quot;
+				;
+END /********* End Procedure Script ************/</definition>
+    </calculationView>
+  </calculationViews>
+  <logicalModel id="Script_View">
+    <descriptions/>
+    <attributes>
+      <attribute id="ID" order="1">
+        <descriptions defaultDescription="ID"/>
+        <keyMapping columnObjectName="Script_View" columnName="ID"/>
+      </attribute>
+      <attribute id="DATE" order="2">
+        <descriptions defaultDescription="DATE"/>
+        <keyMapping columnObjectName="Script_View" columnName="DATE"/>
+      </attribute>
+    </attributes>
+    <calculatedAttributes/>
+    <privateDataFoundation>
+      <tableProxies/>
+      <joins/>
+      <layout>
+        <shapes/>
+      </layout>
+    </privateDataFoundation>
+    <baseMeasures>
+      <measure id="SIR_SUSCEPTIBLE" order="3" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="SUSCEPTIBLE"/>
+        <measureMapping columnObjectName="Script_View" columnName="SIR_SUSCEPTIBLE"/>
+      </measure>
+      <measure id="SIR_INFECTED" order="4" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="INFECTED"/>
+        <measureMapping columnObjectName="Script_View" columnName="SIR_INFECTED"/>
+      </measure>
+      <measure id="SIR_RECOVERED" order="5" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="RECOVERED"/>
+        <measureMapping columnObjectName="Script_View" columnName="SIR_RECOVERED"/>
+      </measure>
+      <measure id="DISP_HOSPITILIZED" order="6" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="DISP_HOSPITILIZED"/>
+        <measureMapping columnObjectName="Script_View" columnName="DISP_HOSPITILIZED"/>
+      </measure>
+      <measure id="DISP_ICU" order="7" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="DISP_ICU"/>
+        <measureMapping columnObjectName="Script_View" columnName="DISP_ICU"/>
+      </measure>
+      <measure id="DISP_VENTILATED" order="8" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="DISP_VENTILATED"/>
+        <measureMapping columnObjectName="Script_View" columnName="DISP_VENTILATED"/>
+      </measure>
+      <measure id="ADM_HOSPITILIZED" order="9" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="ADM_HOSPITILIZED"/>
+        <measureMapping columnObjectName="Script_View" columnName="ADM_HOSPITILIZED"/>
+      </measure>
+      <measure id="ADM_ICU" order="10" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="ADM_ICU"/>
+        <measureMapping columnObjectName="Script_View" columnName="ADM_ICU"/>
+      </measure>
+      <measure id="ADM_VENTILATED" order="11" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="ADM_VENTILATED"/>
+        <measureMapping columnObjectName="Script_View" columnName="ADM_VENTILATED"/>
+      </measure>
+      <measure id="CENS_HOSPITILIZED" order="12" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="CENS_HOSPITILIZED"/>
+        <measureMapping columnObjectName="Script_View" columnName="CENS_HOSPITILIZED"/>
+      </measure>
+      <measure id="CENS_ICU" order="13" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="CENS_ICU"/>
+        <measureMapping columnObjectName="Script_View" columnName="CENS_ICU"/>
+      </measure>
+      <measure id="CENS_VENTILATED" order="14" aggregationType="sum" measureType="simple">
+        <descriptions defaultDescription="CENS_VENTILATED"/>
+        <measureMapping columnObjectName="Script_View" columnName="CENS_VENTILATED"/>
+      </measure>
+    </baseMeasures>
+    <calculatedMeasures/>
+    <restrictedMeasures/>
+    <localDimensions/>
+  </logicalModel>
+  <layout>
+    <shapes>
+      <shape modelObjectName="Output" modelObjectNameSpace="MeasureGroup">
+        <upperLeftCorner x="40" y="85"/>
+      </shape>
+    </shapes>
+  </layout>
+</Calculation:scenario>

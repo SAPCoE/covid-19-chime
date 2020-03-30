@@ -1,0 +1,2 @@
+population,current_hospitalized,doubling_time,known_infected,n_days,market_share,relative_contact_rate,hospitalized_rate,hospitalized_los,icu_rate,icu_los,ventilated_rate,ventilated_los
+100000,14,4,510,60,0.15,0.3,0.025,7,0.0075,9,0.005,10

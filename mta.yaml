@@ -1,0 +1,19 @@
+ID: COVID-19
+_schema-version: '2.1'
+version: 0.0.1
+
+modules:
+ - name: Chime_db
+   type: hdb
+   path: Chime_db
+   requires:
+    - name: hdi_Chime_db
+
+resources:
+ - name: hdi_Chime_db
+   parameters:
+      config:
+         schema: Chime_db
+   properties:
+      hdi-container-name: ${service-name}
+   type: com.sap.xs.hdi-container

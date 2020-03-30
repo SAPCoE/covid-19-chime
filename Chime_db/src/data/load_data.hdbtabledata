@@ -1,0 +1,18 @@
+{
+"format_version": 1,
+"imports": [{
+  "target_table": "HDI_TBL_DEFAULT_PARAMETERS",
+  "source_data": {
+    "data_type": "CSV",
+    "file_name": "settings.csv",
+    "has_header": true,
+    "dialect": "HANA",
+    "type_config": {
+      "delimiter": ","
+    }
+  },
+  "import_settings": {
+	"include_filter":[]
+  }
+}]
+}
